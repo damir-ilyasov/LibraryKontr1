@@ -100,9 +100,11 @@
                     </DataGridTextColumn.Binding>
                 </DataGridTextColumn>
 
-                <DataGridTextColumn Header="Жанр" 
-                                    Binding="{Binding Genre.Name}" 
-                                    Width="120"/>
+                <DataGridTextColumn Header="Жанры" Width="*">
+                    <DataGridTextColumn.Binding>
+                        <Binding Path="Genres"/>
+                    </DataGridTextColumn.Binding>
+                </DataGridTextColumn>
 
                 <DataGridTextColumn Header="Год" 
                                     Binding="{Binding PublishYear}" 

@@ -1,15 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Migrations.Operations;
-using System.Text;
+using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace WpfApp2
 {
@@ -33,18 +26,20 @@ namespace WpfApp2
                 var books = db.Books
                     .Include(b => b.Author)
                     .Include(b => b.BookGenres)
-                        .ThenInclude(b => b.Genre)
+                        .ThenInclude(bg => bg.Genre)
                     .ToList();
 
                 var booksView = books.Select(b => new
                 {
                     b.Id,
                     b.Title,
-                    AuthorName = b.Author != null ? $"{b.Author.FirstName} {b.Author.LastName}" : "",
-                    Genre = string.Join(", ", b.BookGenres.Select(bg => bg.Genre.Name)),
+                    Author = b.Author,
+                    Genres = b.BookGenres != null && b.BookGenres.Any()
+                        ? string.Join(", ", b.BookGenres.Select(bg => bg.Genre.Name))
+                        : "Нет жанров",
                     b.PublishYear,
                     b.ISBN,
-                    b.QuantilityInStock
+                    QuantityInStock = b.QuantilityInStock
                 }).ToList();
 
                 BooksDataGrid.ItemsSource = booksView;
@@ -63,7 +58,8 @@ namespace WpfApp2
                 AuthorFilterComboBox.SelectionChanged += FilterChanged;
             }
         }
-        private void SearchTextBox_TextChanged(object sender, EventArgs e)
+
+        private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
 
         }
@@ -89,15 +85,16 @@ namespace WpfApp2
             try
             {
                 using (ApplicationContext db = new ApplicationContext())
-                { 
+                {
                     var query = db.Books
                         .Include(b => b.Author)
-                        .Include(b => b.Genre)
+                        .Include(b => b.BookGenres)
+                            .ThenInclude(bg => bg.Genre)
                         .AsQueryable();
 
                     if (GenreFilterComboBox.SelectedItem is Genre selectedGenre && selectedGenre.Id != 0)
                     {
-                        query = query.Where(b => b.GenreId == selectedGenre.Id);
+                        query = query.Where(b => b.BookGenres.Any(bg => bg.GenreId == selectedGenre.Id));
                     }
 
                     if (AuthorFilterComboBox.SelectedItem is Author selectedAuthor && selectedAuthor.Id != 0)
@@ -111,7 +108,22 @@ namespace WpfApp2
                         query = query.Where(b => b.Title.Contains(searchText));
                     }
 
-                    BooksDataGrid.ItemsSource = query.ToList();
+                    var filteredBooks = query.ToList();
+
+                    var booksView = filteredBooks.Select(b => new
+                    {
+                        b.Id,
+                        b.Title,
+                        Author = b.Author,
+                        Genres = b.BookGenres != null && b.BookGenres.Any()
+                            ? string.Join(", ", b.BookGenres.Select(bg => bg.Genre.Name))
+                            : "Нет жанров",
+                        b.PublishYear,
+                        b.ISBN,
+                        QuantityInStock = b.QuantilityInStock
+                    }).ToList();
+
+                    BooksDataGrid.ItemsSource = booksView;
                 }
             }
             catch (Exception ex)
@@ -121,7 +133,7 @@ namespace WpfApp2
             }
         }
 
-        private void ClearFilterButton_Click(object sender, EventArgs e)
+        private void ClearFilterButton_Click(object sender, RoutedEventArgs e)
         {
             GenreFilterComboBox.SelectedIndex = 0;
             AuthorFilterComboBox.SelectedIndex = 0;
@@ -130,7 +142,6 @@ namespace WpfApp2
         private void AddBookButton_Click(object sender, EventArgs e)
         {
             var window = new WindowBook();
-
             if (window.ShowDialog() == true)
             {
                 LoadData();
@@ -139,12 +150,30 @@ namespace WpfApp2
 
         private void EditBookButton_Click(object sender, RoutedEventArgs e)
         {
-            if (BooksDataGrid.SelectedItem is Book selectedBook)
+            if (BooksDataGrid.SelectedItem != null)
             {
-                var window = new WindowBook(selectedBook);
-                if (window.ShowDialog() == true)
+                var selectedItem = BooksDataGrid.SelectedItem;
+                var idProperty = selectedItem.GetType().GetProperty("Id");
+
+                if (idProperty != null)
                 {
-                    LoadData();
+                    int bookId = (int)idProperty.GetValue(selectedItem);
+
+                    using (var db = new ApplicationContext())
+                    {
+                        var book = db.Books
+                            .Include(b => b.BookGenres)
+                            .FirstOrDefault(b => b.Id == bookId);
+
+                        if (book != null)
+                        {
+                            var window = new WindowBook(book);
+                            if (window.ShowDialog() == true)
+                            {
+                                LoadData();
+                            }
+                        }
+                    }
                 }
             }
             else
@@ -156,9 +185,13 @@ namespace WpfApp2
 
         private void DeleteBookButton_Click(object sender, RoutedEventArgs e)
         {
-            if (BooksDataGrid.SelectedItem is Book selectedBook)
+            if (BooksDataGrid.SelectedItem != null)
             {
-                var result = MessageBox.Show($"Удалить книгу '{selectedBook.Title}'?",
+                dynamic selectedBook = BooksDataGrid.SelectedItem;
+                string bookTitle = selectedBook.Title;
+                int bookId = selectedBook.Id;
+
+                var result = MessageBox.Show($"Удалить книгу '{bookTitle}'?",
                     "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
@@ -167,8 +200,12 @@ namespace WpfApp2
                     {
                         using (var db = new ApplicationContext())
                         {
-                            db.Books.Remove(selectedBook);
-                            db.SaveChanges();
+                            var book = db.Books.Find(bookId);
+                            if (book != null)
+                            {
+                                db.Books.Remove(book);
+                                db.SaveChanges();
+                            }
                         }
 
                         LoadData();
