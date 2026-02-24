@@ -11,10 +11,17 @@ namespace WpfApp2
     {
         public int Id { get; set; }
         public string Title { get; set; }
-        public string Author { get; set; }
+        public int? AuthorId { get; set; }
+        public Author Author { get; set; }
         public int PublishYear { get; set; }
         public string ISBN { get; set; }
-        public string Genre { get; set; }
+        public int? GenreId { get; set; }
+        public Genre Genre { get; set; }
         public int QuantilityInStock { get; set; }
+        public ICollection<BookGenre> BookGenres { get; set; } 
+            public Book()
+        {
+            BookGenres = new List<BookGenre>();
+        }
     }
 }

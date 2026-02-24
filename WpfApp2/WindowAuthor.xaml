@@ -1,0 +1,66 @@
+﻿<Window x:Class="WpfApp2.WindowAuthor"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp2"
+        mc:Ignorable="d"
+        Title="WindowAuthor" Height="450" Width="800">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Список авторов" 
+                   FontSize="20" FontWeight="Bold" 
+                   HorizontalAlignment="Center" 
+                   Margin="10"/>
+
+        <DataGrid x:Name="AuthorsDataGrid" 
+                  Grid.Row="1" 
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  Margin="0,0,0,10">
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
+                <DataGridTextColumn Header="Имя" Binding="{Binding FirstName}" Width="*"/>
+                <DataGridTextColumn Header="Фамилия" Binding="{Binding LastName}" Width="*"/>
+                <DataGridTextColumn Header="Дата рождения" Binding="{Binding BirthDate, StringFormat='dd.MM.yyyy'}" Width="120"/>
+                <DataGridTextColumn Header="Страна" Binding="{Binding Country}" Width="120"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="2" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Center">
+
+            <Button x:Name="AddAuthorButton" 
+                    Content="Добавить" 
+                    Width="100" Height="35" 
+                    Margin="5"
+                    Click="AddAuthorButton_Click"/>
+
+            <Button x:Name="EditAuthorButton" 
+                    Content="Редактировать" 
+                    Width="100" Height="35" 
+                    Margin="5"
+                    Click="EditAuthorButton_Click"/>
+
+            <Button x:Name="DeleteAuthorButton" 
+                    Content="Удалить" 
+                    Width="100" Height="35" 
+                    Margin="5"
+                    Click="DeleteAuthorButton_Click"/>
+
+            <Button x:Name="CloseButton" 
+                    Content="Закрыть" 
+                    Width="100" Height="35" 
+                    Margin="5"
+                    Click="CloseButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
